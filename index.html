@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Nod Builder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.5rem; }
+      * { box-sizing: border-box; }
+      :root {
+        --bg: #f2f5f0;
+        --bg2: #e7ede3;
+        --panel: #ffffff;
+        --panel2: #eef3ea;
+        --ink: #10160f;
+        --ink2: #45503f;
+        --line: #c9d4c2;
+        --green: #0c7a33;
+        --green-soft: #dff3e4;
+        --gold: #8a6a14;
+        --gold-soft: #f7ecd0;
+        --red: #a02c22;
+        --red-soft: #fbe7e3;
+        --mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #060806;
+          --bg2: #0b0f0a;
+          --panel: #10140f;
+          --panel2: #161c15;
+          --ink: #eaf5e9;
+          --ink2: #a9bda2;
+          --line: #263324;
+          --green: #39ff6a;
+          --green-soft: #0e2b16;
+          --gold: #ffd257;
+          --gold-soft: #2b230a;
+          --red: #ff8a7a;
+          --red-soft: #331511;
+        }
+      }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 56px; }
+      h1 { font-size: clamp(30px, 7vw, 44px); font-weight: 900; letter-spacing: -0.02em; margin: 6px 0 8px; line-height: 1.05; }
+      h2 { font-size: 22px; font-weight: 700; margin: 34px 0 6px; letter-spacing: -0.01em; }
+      h3 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+      p { margin: 0 0 10px; }
+      .lede { color: var(--ink2); font-size: 16px; max-width: 62ch; }
+      .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
+      .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+      .stat b { font-family: var(--mono); font-weight: 600; }
+      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 12px; }
+      .hint { color: var(--ink2); font-size: 14px; }
+      /* Node map */
+      .mapbox { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 8px; margin-top: 12px; }
+      svg.map { width: 100%; height: auto; display: block; }
+      svg.map .wire { stroke: var(--green); stroke-width: 1.6; opacity: .55; }
+      svg.map .node { cursor: pointer; }
+      svg.map .node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.4; }
+      svg.map .node:hover rect, svg.map .node:focus rect { stroke: var(--green); stroke-width: 2.2; }
+      svg.map .node text { fill: var(--ink); font-family: var(--sans); }
+      svg.map .node .sub { fill: var(--ink2); font-family: var(--mono); }
+      svg.map .hub rect { fill: var(--green-soft); stroke: var(--green); stroke-width: 2; }
+      /* Flow builder */
+      .palette { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+      .pbtn { font: inherit; font-size: 14px; font-weight: 500; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; min-height: 40px; }
+      .pbtn:active { border-color: var(--green); }
+      .flow { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+      .fstep { display: flex; align-items: center; gap: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+      .fstep .n { font-family: var(--mono); font-size: 12px; color: var(--green); font-weight: 600; border: 1px solid var(--green); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; flex: none; }
+      .fstep .t { font-weight: 500; font-size: 15px; }
+      .fstep .d { color: var(--ink2); font-size: 13px; }
+      .fstep button { margin-left: auto; flex: none; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--ink2); font: inherit; font-size: 13px; padding: 4px 10px; cursor: pointer; min-height: 36px; }
+      .fjoin { width: 2px; height: 14px; background: var(--green); opacity: .6; margin-left: 24px; }
+      .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 18px; text-align: center; color: var(--ink2); font-size: 14px; }
+      pre.json { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0; max-height: 260px; overflow-y: auto; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .btn { font: inherit; font-size: 15px; font-weight: 600; border-radius: 10px; padding: 10px 16px; cursor: pointer; min-height: 44px; border: 1px solid var(--green); background: var(--green); color: #06130a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+      @media (prefers-color-scheme: light) { .btn { color: #fff; } }
+      .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+      .btn.small { font-size: 13.5px; padding: 6px 12px; min-height: 38px; font-weight: 500; }
+      /* Repo cards */
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 12px; scroll-margin-top: 16px; transition: border-color .3s, box-shadow .3s; }
+      .card.flash { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+      .cardhead { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+      .cardhead h3 { flex: 1 1 180px; }
+      .badge { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+      .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+      .badge.warn { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold); }
+      .badge.off { background: var(--red-soft); color: var(--red); border: 1px solid var(--red); }
+      .badge.live { background: var(--green); color: #06130a; }
+      @media (prefers-color-scheme: light) { .badge.live { color: #fff; } }
+      .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+      .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+      .links .lbl { font-size: 12.5px; color: var(--ink2); font-weight: 600; }
+      .chip { font: inherit; font-size: 13px; background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; color: var(--ink); min-height: 36px; }
+      .chip:hover { border-color: var(--green); }
+      a.chip { text-decoration: none; display: inline-flex; align-items: center; }
+      .repolist { columns: 2; column-gap: 20px; font-family: var(--mono); font-size: 13px; margin: 8px 0 0; padding-left: 18px; }
+      @media (max-width: 560px) { .repolist { columns: 1; } }
+      .repolist li { margin-bottom: 3px; break-inside: avoid; }
+      .card p a, .repolist a { color: var(--green); }
+      details { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 12px 10px; background: var(--panel2); }
+      summary { font-weight: 600; font-size: 14.5px; cursor: pointer; padding: 8px 0; }
+      ol.steps { margin: 8px 0 0; padding-left: 22px; }
+      ol.steps li { margin-bottom: 6px; }
+      .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(80px); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 500; transition: transform .25s; z-index: 50; max-width: 90vw; text-align: center; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+      footer { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--ink2); font-size: 13.5px; }
+      @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .toast { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Nod Builder</h1>
+      <p class="lede">The node builder for your builder repo. Nod the desktop app can't run on your phone — it needs x64, Flatpak and /dev/kvm — so this is the same node flow built for the phone: every repo you own is a node, and every node links to the ones it feeds. Your live n8n instance is where the flows will run.</p>
+
+      <div class="stats">
+        <span class="stat"><b>2</b> candidate apps in the Atlas · <b>1</b> excluded</span>
+        <span class="stat"><b>33</b> GitHub repos · 2 accounts</span>
+        <span class="stat"><b>134</b> Muse spaces</span>
+        <span class="stat"><b>1</b> live n8n instance</span>
+      </div>
+
+      <h2>The map — tap a node</h2>
+      <div class="mapbox">
+        <svg class="map" viewBox="0 0 360 300" role="group" aria-label="Repo node map">
+          <line class="wire" x1="180" y1="150" x2="70" y2="48" />
+          <line class="wire" x1="180" y1="150" x2="290" y2="48" />
+          <line class="wire" x1="180" y1="150" x2="300" y2="150" />
+          <line class="wire" x1="180" y1="150" x2="290" y2="252" />
+          <line class="wire" x1="180" y1="150" x2="70" y2="252" />
+          <line class="wire" x1="180" y1="150" x2="52" y2="150" />
+          <g class="node" data-go="card-atlas" tabindex="0" role="button" aria-label="F-Droid Atlas repo">
+            <rect x="8" y="24" width="124" height="48" rx="10" />
+            <text x="70" y="45" text-anchor="middle" font-size="13" font-weight="700">F-Droid Atlas</text>
+            <text class="sub" x="70" y="62" text-anchor="middle" font-size="10">fdroid-atlas</text>
+          </g>
+          <g class="node" data-go="card-builder" tabindex="0" role="button" aria-label="HI-AI Builder repo">
+            <rect x="228" y="24" width="124" height="48" rx="10" />
+            <text x="290" y="45" text-anchor="middle" font-size="13" font-weight="700">HI-AI Builder</text>
+            <text class="sub" x="290" y="62" text-anchor="middle" font-size="10">the builder repo</text>
+          </g>
+          <g class="node" data-go="card-xit" tabindex="0" role="button" aria-label="x-it app">
+            <rect x="242" y="126" width="116" height="48" rx="10" />
+            <text x="300" y="147" text-anchor="middle" font-size="13" font-weight="700">x-it</text>
+            <text class="sub" x="300" y="164" text-anchor="middle" font-size="8.5">com.xksh808dsh.xit</text>
+          </g>
+          <g class="node" data-go="card-n8n" tabindex="0" role="button" aria-label="n8n instance">
+            <rect x="228" y="228" width="124" height="48" rx="10" />
+            <text x="290" y="249" text-anchor="middle" font-size="13" font-weight="700">n8n · hiai808</text>
+            <text class="sub" x="290" y="266" text-anchor="middle" font-size="10">instance live</text>
+          </g>
+          <g class="node" data-go="card-github" tabindex="0" role="button" aria-label="GitHub repos">
+            <rect x="8" y="228" width="124" height="48" rx="10" />
+            <text x="70" y="249" text-anchor="middle" font-size="13" font-weight="700">GitHub</text>
+            <text class="sub" x="70" y="266" text-anchor="middle" font-size="10">33 repos</text>
+          </g>
+          <g class="node" data-go="card-links" tabindex="0" role="button" aria-label="Money and contact links">
+            <rect x="6" y="126" width="92" height="48" rx="10" />
+            <text x="52" y="147" text-anchor="middle" font-size="13" font-weight="700">Links</text>
+            <text class="sub" x="52" y="164" text-anchor="middle" font-size="10">store · chat</text>
+          </g>
+          <g class="node hub" data-go="card-builder" tabindex="0" role="button" aria-label="Nod Builder hub">
+            <rect x="118" y="122" width="124" height="56" rx="12" />
+            <text x="180" y="146" text-anchor="middle" font-size="14" font-weight="900">NOD BUILDER</text>
+            <text class="sub" x="180" y="164" text-anchor="middle" font-size="10">links them all</text>
+          </g>
+        </svg>
+      </div>
+      <p class="hint">Every node below is a real repo or service from your own scan — Nov 16, 2026. Statuses are the honest ones from the repos themselves.</p>
+
+      <h2>Build a flow</h2>
+      <p class="hint">Tap nodes to stack a build pipeline — the same shape as an n8n workflow. When it reads right, download the plan and run it on hiai808.</p>
+      <div class="panel">
+        <div class="palette" id="palette"></div>
+        <div class="flow" id="flow"></div>
+        <pre class="json" id="jsonOut" aria-label="Flow config JSON"></pre>
+        <div class="row">
+          <button class="btn" id="dlPlan" type="button">Download build plan</button>
+          <button class="btn ghost" id="clearFlow" type="button">Clear flow</button>
+          <a class="btn ghost" href="https://hiai808.app.n8n.cloud/assistant" target="_blank" rel="noopener">Open n8n · hiai808 ↗</a>
+        </div>
+      </div>
+
+      <h2>The builder repo — every repo, filled in</h2>
+      <p class="hint">Linked here means: every card below jumps to the repos it feeds and the ones that feed it, and every service with a real public URL opens out. The Atlas and Builder repos themselves are local — they aren't pushed to GitHub or hosted yet, so they carry no public URL to open. That push is your two taps: create the empty repo, add it to the Muse GitHub App.</p>
+
+      <div class="card" id="card-atlas">
+        <div class="cardhead">
+          <h3>F-Droid Atlas — the map repo</h3>
+          <span class="badge warn">Structure built · not hosted yet</span>
+        </div>
+        <p>One repo, every app, served as your custom F-Droid repository. The atlas is the map: which apps exist, where their source lives, what state they're in, and how they get into the repo. FOSS only, MIT license — F-Droid compiles from source itself, no gatekeeper cut.</p>
+        <p class="mono">repo: fdroid-atlas · atlas.json v0.1.0 · metadata: fdroid/metadata/ · local repo — not on GitHub yet</p>
+        <p class="hint">Honest status: no APK built yet, no index generated yet, no repo hosted yet. Repo signing is an owner-controlled step — keys stay off public files, your tap.</p>
+        <div class="links">
+          <span class="lbl">Holds →</span>
+          <button class="chip" data-go="card-xit" type="button">x-it</button>
+          <button class="chip" data-go="card-builder" type="button">HI-AI Builder</button>
+          <span class="lbl">Built by →</span>
+          <button class="chip" data-go="card-builder" type="button">HI-AI Builder</button>
+          <span class="lbl">Source lives on →</span>
+          <button class="chip" data-go="card-github" type="button">GitHub</button>
+        </div>
+        <div class="row">
+          <button class="btn small ghost" data-copy="com.xksh808dsh.xit, org.hoolulu.hiaibuilder" type="button">Copy atlas package IDs</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-builder">
+        <div class="cardhead">
+          <h3>HI-AI Builder — the builder repo</h3>
+          <span class="badge ok">Metadata ready</span>
+        </div>
+        <p>Phone-first, offline-first Android project + F-Droid metadata generator + privacy scanner. This is the tool that makes the clean Android source, the metadata, and the privacy scan for every app that enters the Atlas. Its privacy gate is allowlist-only — dry scan first, review before release.</p>
+        <p class="mono">package: org.hoolulu.hiaibuilder · v0.1.0 · source: hiai-fdroid-builder · gate: scripts/privacy_gate.py · local repo — not on GitHub yet</p>
+        <div class="links">
+          <span class="lbl">Feeds →</span>
+          <button class="chip" data-go="card-atlas" type="button">F-Droid Atlas</button>
+          <button class="chip" data-go="card-xit" type="button">x-it</button>
+          <span class="lbl">Runs on →</span>
+          <button class="chip" data-go="card-n8n" type="button">n8n · hiai808</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-xit">
+        <div class="cardhead">
+          <h3>x-it — the F-Droid candidate</h3>
+          <span class="badge warn">Source ready · APK not built</span>
+        </div>
+        <p>Your own AI product, first in line for the Atlas. Source sits in <span class="mono">cap-xit</span> (Capacitor 8, v1.0.0). The GitHub Actions workflow builds the debug APK — it runs only after the code is pushed to a repo, from the repo's Actions tab.</p>
+        <p class="mono">package: com.xksh808dsh.xit · v1.0.0 · metadata: fdroid/metadata/com.xksh808dsh.xit.yml</p>
+        <div class="links">
+          <span class="lbl">Listed in →</span>
+          <button class="chip" data-go="card-atlas" type="button">F-Droid Atlas</button>
+          <span class="lbl">Built by →</span>
+          <button class="chip" data-go="card-builder" type="button">HI-AI Builder</button>
+          <span class="lbl">Workflow runs on →</span>
+          <button class="chip" data-go="card-github" type="button">GitHub</button>
+        </div>
+        <div class="row">
+          <button class="btn small ghost" data-copy="com.xksh808dsh.xit" type="button">Copy package ID</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-github">
+        <div class="cardhead">
+          <h3>GitHub — where the source lives</h3>
+          <span class="badge ok">33 repos · 2 accounts</span>
+        </div>
+        <p><a href="https://github.com/xavierhoolulu13-dotcom" target="_blank" rel="noopener"><span class="mono">xavierhoolulu13-dotcom</span></a> — 29 repos. <a href="https://github.com/x1500556-ops" target="_blank" rel="noopener"><span class="mono">x1500556-ops</span></a> — 4 repos. 33 total, counted on GitHub itself. Load-bearing for this builder: the webappbuildr, superagent, loopsidian and HiAi-intelligence- repos under x1500556-ops, plus tentcity. Both accounts open out — tap through:</p>
+        <div class="row">
+          <a class="btn small" href="https://github.com/xavierhoolulu13-dotcom" target="_blank" rel="noopener">xavierhoolulu13-dotcom ↗</a>
+          <a class="btn small" href="https://github.com/x1500556-ops" target="_blank" rel="noopener">x1500556-ops ↗</a>
+        </div>
+        <div class="links">
+          <span class="lbl">Key repos →</span>
+          <a class="chip" href="https://github.com/x1500556-ops/xksh808dsh-webappbuildr" target="_blank" rel="noopener">xksh808dsh-webappbuildr ↗</a>
+          <a class="chip" href="https://github.com/x1500556-ops/xksh808dsh-superagent" target="_blank" rel="noopener">xksh808dsh-superagent ↗</a>
+          <a class="chip" href="https://github.com/x1500556-ops/loopsidian" target="_blank" rel="noopener">loopsidian ↗</a>
+          <a class="chip" href="https://github.com/x1500556-ops/HiAi-intelligence-" target="_blank" rel="noopener">HiAi-intelligence- ↗</a>
+          <a class="chip" href="https://github.com/xavierhoolulu13-dotcom/tentcity" target="_blank" rel="noopener">tentcity ↗</a>
+        </div>
+        <details>
+          <summary>All 29 repos under xavierhoolulu13-dotcom — tap to open the full list</summary>
+          <ul class="repolist">
+          <li>AI-IT-IS-HIAI</li>
+          <li>Awesome-OSINT-List</li>
+          <li>Honolulu-Automation808</li>
+          <li>Hoolulu-API-mega-list</li>
+          <li>Hoolulu-api1</li>
+          <li>Material-You-app-list</li>
+          <li>R2n808-xksh808digitalservicesHawaii-</li>
+          <li>V4</li>
+          <li>arena-factory-hoolulu</li>
+          <li>chatbot808</li>
+          <li>genspark-clone-</li>
+          <li>hoolulu-agi</li>
+          <li>hoolulu-factory</li>
+          <li>hoolulu-factory-FROZEN-CORE</li>
+          <li>hoolulu-factory3.0</li>
+          <li>imgcode</li>
+          <li>manim</li>
+          <li>mistral-vibe</li>
+          <li>open-webui</li>
+          <li>openmuse</li>
+          <li>opensource.builders</li>
+          <li>plug-the-leaks</li>
+          <li>rsis808</li>
+          <li>solution-studio-v2</li>
+          <li>tentcity</li>
+          <li>x-actly</li>
+          <li>x-ist</li>
+          <li>x-it</li>
+          <li>xksh808-kkos</li>
+          </ul>
+        </details>
+        <details>
+          <summary>All 4 repos under x1500556-ops — tap to open the full list</summary>
+          <ul class="repolist">
+          <li><a href="https://github.com/x1500556-ops/HiAi-intelligence-" target="_blank" rel="noopener">HiAi-intelligence-</a></li>
+          <li><a href="https://github.com/x1500556-ops/loopsidian" target="_blank" rel="noopener">loopsidian</a></li>
+          <li><a href="https://github.com/x1500556-ops/xksh808dsh-superagent" target="_blank" rel="noopener">xksh808dsh-superagent</a></li>
+          <li><a href="https://github.com/x1500556-ops/xksh808dsh-webappbuildr" target="_blank" rel="noopener">xksh808dsh-webappbuildr</a></li>
+          </ul>
+        </details>
+        <div class="links">
+          <span class="lbl">Hosts source for →</span>
+          <button class="chip" data-go="card-atlas" type="button">F-Droid Atlas</button>
+          <button class="chip" data-go="card-xit" type="button">x-it</button>
+          <button class="chip" data-go="card-builder" type="button">HI-AI Builder</button>
+        </div>
+        <div class="row">
+          <button class="btn small ghost" data-copy="xavierhoolulu13-dotcom, x1500556-ops" type="button">Copy account names</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-n8n">
+        <div class="cardhead">
+          <h3>n8n · hiai808 — the runner</h3>
+          <span class="badge warn">Instance live · workflows not built yet</span>
+        </div>
+        <p>Your cloud instance is live and answering — that's real. The hands-off watches (money, lead, system, trial — each ending at your tap) are the plan for it, not built yet: they still need your Personal Access Token through the secure flow, your go to build on the instance, Telegram wired for the pings, and Gmail connected inside n8n. It's also why Nod doesn't need installing — once the workflows exist, the instance does Nod's job from your browser.</p>
+        <p class="mono">hiai808.app.n8n.cloud</p>
+        <div class="links">
+          <span class="lbl">Will run flows for →</span>
+          <button class="chip" data-go="card-builder" type="button">HI-AI Builder</button>
+          <button class="chip" data-go="card-atlas" type="button">F-Droid Atlas</button>
+          <span class="lbl">Pings you via →</span>
+          <button class="chip" data-go="card-links" type="button">Links</button>
+        </div>
+        <div class="row">
+          <a class="btn small" href="https://hiai808.app.n8n.cloud/assistant" target="_blank" rel="noopener">Open the instance ↗</a>
+          <button class="btn small ghost" data-copy="https://hiai808.app.n8n.cloud/assistant" type="button">Copy instance link</button>
+        </div>
+      </div>
+
+      <div class="card" id="card-links">
+        <div class="cardhead">
+          <h3>Links — store &amp; chat</h3>
+          <span class="badge warn">Links live · payouts pending</span>
+        </div>
+        <p>The money door and the chat door, on the same map so a flow can end at a sale or a conversation. Honest state: the Gumroad store link opens, but its products are still drafts and payouts aren't saved yet — PayPal connect is the pending tap. The WhatsApp Business number is verified and live.</p>
+        <div class="row">
+          <a class="btn small" href="https://1670427178044.gumroad.com" target="_blank" rel="noopener">Gumroad store ↗</a>
+          <a class="btn small ghost" href="https://wa.me/message/MNXTUXISBOMAP1" target="_blank" rel="noopener">WhatsApp Business ↗</a>
+        </div>
+        <div class="row">
+          <button class="btn small ghost" data-copy="https://1670427178044.gumroad.com" type="button">Copy store link</button>
+          <button class="btn small ghost" data-copy="https://wa.me/message/MNXTUXISBOMAP1" type="button">Copy WhatsApp link</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardhead">
+          <h3>apk-editor</h3>
+          <span class="badge off">Excluded — do not ship</span>
+        </div>
+        <p class="mono">com.xksh808.system</p>
+        <p class="hint">In the Atlas registry as excluded: its bundled library is a broad system snapshot, not audited or allowlisted. It stays out of the F-Droid repo until it's separately audited. Listed here so the map stays true — not linked into any build flow.</p>
+      </div>
+
+      <h2>Add the Atlas on your phone</h2>
+      <div class="panel">
+        <p>Once the repo is hosted, this is the whole install — no Flatpak, no desktop:</p>
+        <ol class="steps">
+          <li>Open the <b>F-Droid app</b> on your phone.</li>
+          <li>Go to <b>Settings → Repositories → +</b>.</li>
+          <li>Paste the Atlas repo URL — the apps appear in F-Droid.</li>
+        </ol>
+        <p class="hint">The URL doesn't exist yet: the repo isn't hosted and no index has been generated. That's the last step of the flow builder above — Build APK → fdroid update → host the <span class="mono">repo/</span> folder over HTTPS. Signing stays in your hands.</p>
+      </div>
+
+      <footer>
+        xksh808dsh · Nod Builder — scanned from fdroid-atlas, hiai-fdroid-builder and the GitHub inventory on Nov 16, 2026. Full entity name in the docs: xksh808digitalserviceshawaii.
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      (function () {
+        var toast = document.getElementById('toast');
+        var toastTimer = null;
+        function showToast(msg) {
+          toast.textContent = msg;
+          toast.classList.add('show');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2200);
+        }
+
+        /* Jump + flash linking */
+        function goTo(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('flash');
+          setTimeout(function () { el.classList.remove('flash'); }, 1600);
+        }
+        document.querySelectorAll('[data-go]').forEach(function (el) {
+          el.addEventListener('click', function () { goTo(el.getAttribute('data-go')); });
+          el.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTo(el.getAttribute('data-go')); }
+          });
+        });
+
+        /* Copy buttons */
+        document.querySelectorAll('[data-copy]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var text = btn.getAttribute('data-copy');
+            function done() { showToast('Copied: ' + text); }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+            } else { fallback(); }
+            function fallback() {
+              var ta = document.createElement('textarea');
+              ta.value = text;
+              ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); done(); } catch (e) { showToast(text); }
+              document.body.removeChild(ta);
+            }
+          });
+        });
+
+        /* Flow builder */
+        var NODES = [
+          { id: 'trigger', label: 'Trigger', desc: 'Your tap, a schedule, or a new commit starts the run.' },
+          { id: 'source', label: 'Source Repo', desc: 'Pull the app source — cap-xit, hiai-fdroid-builder — from GitHub.' },
+          { id: 'build', label: 'Build APK', desc: 'GitHub Actions workflow builds the debug APK from clean source.' },
+          { id: 'scan', label: 'Privacy Scan', desc: 'privacy_gate.py — allowlist-only dry scan. Nothing ships unreviewed.' },
+          { id: 'index', label: 'F-Droid Index', desc: 'APK into repo/, metadata in place, fdroid update builds the index.' },
+          { id: 'linkcheck', label: 'Link Check', desc: 'Atlas entry, package ID, store and chat links all verified connected.' },
+          { id: 'gate', label: 'Publish Gate', desc: 'Stops here. Hosting and signing are your tap — nothing publishes alone.' }
+        ];
+        var flow = ['trigger', 'source', 'build', 'scan', 'gate'];
+        var palette = document.getElementById('palette');
+        var flowEl = document.getElementById('flow');
+        var jsonOut = document.getElementById('jsonOut');
+
+        NODES.forEach(function (n) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'pbtn';
+          b.textContent = '+ ' + n.label;
+          b.addEventListener('click', function () {
+            flow.push(n.id);
+            render();
+          });
+          palette.appendChild(b);
+        });
+
+        function nodeById(id) {
+          for (var i = 0; i < NODES.length; i++) if (NODES[i].id === id) return NODES[i];
+          return NODES[0];
+        }
+
+        function render() {
+          flowEl.innerHTML = '';
+          if (!flow.length) {
+            var e = document.createElement('div');
+            e.className = 'empty';
+            e.textContent = 'Flow is empty — tap a node above to start stacking.';
+            flowEl.appendChild(e);
+          }
+          flow.forEach(function (id, i) {
+            var n = nodeById(id);
+            if (i > 0) {
+              var j = document.createElement('div');
+              j.className = 'fjoin';
+              flowEl.appendChild(j);
+            }
+            var s = document.createElement('div');
+            s.className = 'fstep';
+            var num = document.createElement('span'); num.className = 'n'; num.textContent = String(i + 1);
+            var mid = document.createElement('div');
+            var t = document.createElement('div'); t.className = 't'; t.textContent = n.label;
+            var d = document.createElement('div'); d.className = 'd'; d.textContent = n.desc;
+            mid.appendChild(t); mid.appendChild(d);
+            var x = document.createElement('button');
+            x.type = 'button'; x.textContent = 'Remove';
+            x.setAttribute('aria-label', 'Remove ' + n.label);
+            x.addEventListener('click', function () { flow.splice(i, 1); render(); });
+            s.appendChild(num); s.appendChild(mid); s.appendChild(x);
+            flowEl.appendChild(s);
+          });
+          var cfg = {
+            name: 'nod-builder-flow',
+            built: '2026-11-16',
+            runner: 'https://hiai808.app.n8n.cloud/assistant',
+            atlas: 'fdroid-atlas',
+            steps: flow.map(function (id, i) {
+              var n = nodeById(id);
+              return { step: i + 1, node: n.id, label: n.label, does: n.desc };
+            })
+          };
+          jsonOut.textContent = JSON.stringify(cfg, null, 2);
+        }
+
+        document.getElementById('clearFlow').addEventListener('click', function () {
+          flow = [];
+          render();
+          showToast('Flow cleared');
+        });
+
+        document.getElementById('dlPlan').addEventListener('click', function () {
+          if (!flow.length) { showToast('Add at least one node first'); return; }
+          var lines = ['# Nod Builder — build plan', 'Built: Nov 16, 2026', 'Runner: https://hiai808.app.n8n.cloud/assistant', 'Atlas: fdroid-atlas (fdroid-atlas/atlas.json)', ''];
+          flow.forEach(function (id, i) {
+            var n = nodeById(id);
+            lines.push((i + 1) + '. ' + n.label + ' — ' + n.desc);
+          });
+          lines.push('', 'Links:', '- n8n instance: https://hiai808.app.n8n.cloud/assistant', '- Gumroad store: https://1670427178044.gumroad.com', '- WhatsApp Business: https://wa.me/message/MNXTUXISBOMAP1', '- Atlas packages: com.xksh808dsh.xit, org.hoolulu.hiaibuilder', '', 'Publish gate: hosting + repo signing are the Founder tap. Nothing publishes alone.');
+          var blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'nod-builder-plan.md';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+          showToast('Build plan downloaded');
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>
